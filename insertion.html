@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Insertion Sort Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .fira-code {
+            font-family: 'Fira Code', monospace;
+        }
+        .bar {
+            transition: all 0.3s ease;
+        }
+        .code-line {
+            transition: background-color 0.3s ease;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.25rem;
+            white-space: pre-wrap;
+        }
+        .highlight-line {
+            background-color: rgba(250, 204, 21, 0.4); /* yellow-300 with opacity */
+        }
+        /* Style for disabled buttons and inputs */
+        input:disabled, button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+        <!-- Header -->
+        <div class="text-center mb-8 relative">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">Insertion Sort Visualizer</h1>
+            <p class="mt-2 text-lg text-gray-600">Builds the final sorted array one item at a time by inserting each element into its proper position.</p>
+            <a href="index.html" class="absolute top-0 right-0 bg-indigo-100 text-indigo-700 font-semibold py-2 px-4 rounded-md hover:bg-indigo-200 transition-colors">
+                &larr; Back to SortLab
+            </a>
+        </div>
+          <!-- Theory Section -->
+          <div class="bg-white p-6 rounded-lg shadow-md mb-8 prose max-w-none">
+            <h2 class="text-xl font-semibold">Insertion Sort Theory</h2>
+            <p>Insertion sort is a simple sorting algorithm that builds the final sorted array one item at a time. It is much less efficient on large lists than more advanced algorithms such as quicksort, heapsort, or merge sort. However, it provides several advantages: simple implementation, efficient for (quite) small data sets, and more efficient in practice than most other simple quadratic algorithms such as selection sort or bubble sort.</p>
+            <p>The algorithm works by taking elements from the list one by one and inserting them in their correct position into a new sorted list. The process is as follows:</p>
+            <ol>
+                <li><strong>Start with the second element:</strong> Assume the first element is already a sorted sub-array.</li>
+                <li><strong>Pick the next element:</strong> Take the next unsorted element (the "key").</li>
+                <li><strong>Compare and shift:</strong> Compare the key with the elements in the sorted sub-array, moving from right to left. If a sorted element is greater than the key, shift it one position to the right to make space.</li>
+                <li><strong>Insert the key:</strong> Continue shifting until you find an element that is smaller than or equal to the key, or you reach the beginning of the array. Insert the key into the newly created space.</li>
+                <li><strong>Repeat:</strong> Repeat this process for all unsorted elements until the entire array is sorted.</li>
+            </ol>
+        </div>
+
+        <!-- Controls -->
+        <div id="controls" class="bg-white p-4 rounded-lg shadow-md mb-8">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-center">
+                <div class="lg:col-span-2">
+                    <label for="array-input" class="block text-sm font-medium text-gray-700">Custom Array (comma-separated)</label>
+                    <input type="text" id="array-input" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="e.g., 12, 11, 13, 5, 6">
+                </div>
+                <div class="flex space-x-2 pt-5">
+                     <button id="randomize-btn" class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Randomize
+                    </button>
+                    <button id="sort-btn" class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        Sort
+                    </button>
+                </div>
+                 <div class="flex space-x-2 pt-5">
+                     <button id="pause-resume-btn" class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-amber-500 hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500">
+                        Pause
+                    </button>
+                    <button id="stop-btn" class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                        Stop
+                    </button>
+                </div>
+                <div>
+                    <label for="speed-slider" class="block text-sm font-medium text-gray-700">Animation Speed</label>
+                    <input type="range" id="speed-slider" min="50" max="1000" value="500" class="mt-1 block w-full">
+                </div>
+                 <div id="explanation-box" class="sm:col-span-full lg:col-span-5 bg-gray-100 p-3 rounded-md text-center h-full flex items-center justify-center mt-4">
+                    <p id="explanation-text" class="text-sm text-gray-700">Ready to sort!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content: Visualization and Code -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Visualization Area -->
+            <div class="bg-white p-6 rounded-lg shadow-md min-h-[350px]">
+                <h2 class="text-xl font-semibold mb-4 text-center">Visualization</h2>
+                <div id="bar-container" class="w-full h-80 flex justify-center items-end gap-1 border-b border-gray-200 pb-2">
+                    <!-- Bars will be generated here -->
+                </div>
+            </div>
+
+            <!-- Code Area -->
+            <div class="bg-gray-800 text-white p-6 rounded-lg shadow-md fira-code">
+                 <h2 class="text-xl font-semibold mb-4 text-center text-gray-300 font-sans">Algorithm Code</h2>
+                 <div id="code-container">
+                    <p class="code-line" data-line="1">function insertionSort(arr) {</p>
+                    <p class="code-line pl-4" data-line="2">  let n = arr.length;</p>
+                    <p class="code-line pl-4" data-line="3">  for (let i = 1; i < n; i++) {</p>
+                    <p class="code-line pl-8" data-line="4">    let key = arr[i];</p>
+                    <p class="code-line pl-8" data-line="5">    let j = i - 1;</p>
+                    <p class="code-line pl-8" data-line="6">    while (j >= 0 && arr[j] > key) {</p>
+                    <p class="code-line pl-12" data-line="7">      arr[j + 1] = arr[j];</p>
+                    <p class="code-line pl-12" data-line="8">      j = j - 1;</p>
+                    <p class="code-line pl-8" data-line="9">    }</p>
+                    <p class="code-line pl-8" data-line="10">    arr[j + 1] = key;</p>
+                    <p class="code-line pl-4" data-line="11">  }</p>
+                    <p class="code-line" data-line="12">}</p>
+                 </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const barContainer = document.getElementById('bar-container');
+        const randomizeBtn = document.getElementById('randomize-btn');
+        const sortBtn = document.getElementById('sort-btn');
+        const pauseResumeBtn = document.getElementById('pause-resume-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const speedSlider = document.getElementById('speed-slider');
+        const arrayInput = document.getElementById('array-input');
+        const codeContainer = document.getElementById('code-container');
+        const explanationText = document.getElementById('explanation-text');
+
+        // State
+        let array = [];
+        let originalArray = [];
+        let animationSpeed = 500; // in milliseconds
+        let isSorting = false;
+        let isPaused = false;
+        let forceStop = false;
+
+        // --- Helper Functions ---
+
+        async function sleep(ms) {
+            while (isPaused && !forceStop) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            if (forceStop) return;
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function generateRandomArray() {
+            const size = Math.floor(Math.random() * 10) + 5; // Array size between 5 and 14
+            const newArray = [];
+            while (newArray.length < size) {
+                const randomNum = Math.floor(Math.random() * 91) + 10; // Numbers between 10 and 100
+                if (!newArray.includes(randomNum)) {
+                    newArray.push(randomNum);
+                }
+            }
+            array = newArray;
+            originalArray = [...array];
+            arrayInput.value = array.join(', ');
+            renderBars();
+        }
+
+        function renderBars(highlights = {}) {
+            barContainer.innerHTML = '';
+            const maxValue = Math.max(...array, 1);
+            array.forEach((value, index) => {
+                const bar = document.createElement('div');
+                bar.classList.add('bar', 'w-8', 'rounded-t-md', 'flex', 'items-end', 'justify-center', 'text-white', 'font-bold', 'text-sm', 'pt-2');
+                const heightPercentage = (value / maxValue) * 100;
+                bar.style.height = `${heightPercentage}%`;
+                bar.textContent = value;
+                
+                if (highlights.sorted && index < highlights.sorted) {
+                    bar.style.backgroundColor = '#10B981'; // Green-500 (Sorted part)
+                } else if (highlights.key === index) {
+                    bar.style.backgroundColor = '#3B82F6'; // Blue-500 (Current key)
+                } else if (highlights.comparing && highlights.comparing.includes(index)) {
+                    bar.style.backgroundColor = '#F59E0B'; // Amber-500 (Comparing/Shifting)
+                } else {
+                    bar.style.backgroundColor = '#6366F1'; // Indigo-500 (Unsorted part)
+                }
+                barContainer.appendChild(bar);
+            });
+        }
+
+        function highlightLine(lineNumber) {
+            document.querySelectorAll('.code-line').forEach(line => {
+                line.classList.remove('highlight-line');
+            });
+            if (lineNumber) {
+                const lineToHighlight = codeContainer.querySelector(`[data-line="${lineNumber}"]`);
+                if (lineToHighlight) {
+                    lineToHighlight.classList.add('highlight-line');
+                }
+            }
+        }
+        
+        function updateExplanation(text) {
+            explanationText.textContent = text;
+        }
+
+        function manageControls(sorting) {
+            isSorting = sorting;
+            arrayInput.disabled = sorting;
+            randomizeBtn.disabled = sorting;
+            sortBtn.disabled = sorting;
+            pauseResumeBtn.disabled = !sorting;
+            stopBtn.disabled = !sorting;
+        }
+
+        // --- Insertion Sort Algorithm and Visualization ---
+
+        async function insertionSort() {
+            manageControls(true);
+            forceStop = false;
+            isPaused = false;
+            pauseResumeBtn.textContent = 'Pause';
+
+            highlightLine(1);
+            updateExplanation("Starting Insertion Sort.");
+            await sleep(animationSpeed); if (forceStop) return handleStop();
+
+            let n = array.length;
+            highlightLine(2);
+            updateExplanation(`The array has ${n} elements.`);
+            await sleep(animationSpeed); if (forceStop) return handleStop();
+
+            highlightLine(3); await sleep(animationSpeed); if (forceStop) return handleStop();
+            for (let i = 1; i < n; i++) {
+                highlightLine(3);
+                updateExplanation(`Pass ${i}: Considering the element at index ${i}.`);
+                await sleep(animationSpeed); if (forceStop) return handleStop();
+
+                let key = array[i];
+                highlightLine(4);
+                updateExplanation(`The 'key' is ${key}. We will insert it into the sorted part.`);
+                renderBars({ sorted: i, key: i });
+                await sleep(animationSpeed * 1.5); if (forceStop) return handleStop();
+
+                let j = i - 1;
+                highlightLine(5);
+                await sleep(animationSpeed); if (forceStop) return handleStop();
+
+                highlightLine(6); await sleep(animationSpeed);
+                while (j >= 0 && array[j] > key) {
+                    highlightLine(6);
+                    updateExplanation(`Comparing key ${key} with ${array[j]}. Since ${array[j]} > ${key}, we shift it right.`);
+                    renderBars({ sorted: i, key: i, comparing: [j] });
+                    await sleep(animationSpeed); if (forceStop) return handleStop();
+
+                    array[j + 1] = array[j];
+                    highlightLine(7);
+                    renderBars({ sorted: i, key: i, comparing: [j+1] });
+                    updateExplanation(`Shifting ${array[j]} from index ${j} to ${j + 1}.`);
+                    await sleep(animationSpeed); if (forceStop) return handleStop();
+
+                    j = j - 1;
+                    highlightLine(8);
+                    await sleep(animationSpeed); if (forceStop) return handleStop();
+                    highlightLine(6);
+                }
+                highlightLine(9); await sleep(animationSpeed);
+
+                array[j + 1] = key;
+                highlightLine(10);
+                updateExplanation(`Found correct position for ${key}. Inserting it at index ${j + 1}.`);
+                renderBars({ sorted: i + 1 });
+                await sleep(animationSpeed * 1.5); if (forceStop) return handleStop();
+                highlightLine(11); await sleep(animationSpeed);
+            }
+            
+            highlightLine(12);
+            updateExplanation("Array is sorted!");
+            renderBars({ sorted: n });
+            manageControls(false);
+        }
+        
+        function handleStop() {
+            array = [...originalArray];
+            renderBars();
+            updateExplanation("Sort stopped by user. Array has been reset.");
+            highlightLine(null);
+            manageControls(false);
+        }
+
+        // --- Event Listeners ---
+
+        randomizeBtn.addEventListener('click', () => {
+             updateExplanation("Generated a new random array.");
+             generateRandomArray();
+        });
+
+        sortBtn.addEventListener('click', () => {
+            const inputVal = arrayInput.value.trim();
+            if (inputVal === '') {
+                updateExplanation("Please enter an array or randomize one.");
+                return;
+            }
+            
+            const parsedArray = inputVal.split(',')
+                .map(item => parseInt(item.trim()))
+                .filter(item => !isNaN(item));
+
+            if (parsedArray.length < 2) {
+                updateExplanation("Please enter at least two numbers.");
+                return;
+            }
+
+            array = parsedArray;
+            originalArray = [...array];
+            renderBars();
+            insertionSort();
+        });
+
+        pauseResumeBtn.addEventListener('click', () => {
+            if (!isSorting) return;
+            isPaused = !isPaused;
+            if (isPaused) {
+                pauseResumeBtn.textContent = 'Resume';
+                updateExplanation('Sorting paused.');
+            } else {
+                pauseResumeBtn.textContent = 'Pause';
+                updateExplanation('Resuming sort...');
+            }
+        });
+
+        stopBtn.addEventListener('click', () => {
+            if (!isSorting) return;
+            forceStop = true;
+            isPaused = false;
+        });
+        
+        speedSlider.addEventListener('input', (e) => {
+            animationSpeed = 1050 - e.target.value;
+        });
+
+        // --- Initial Load ---
+        window.onload = () => {
+            generateRandomArray();
+            manageControls(false);
+            updateExplanation("Ready to sort! Press the Sort button to begin.");
+        };
+
+    </script>
+</body>
+<footer class="text-center mt-16 pt-8 border-t border-gray-200">
+    <h3 class="text-xl font-semibold text-gray-800">This project is built with ❤️ by a solo developer.</h3>
+    <p class="text-gray-600 mt-2">If you find it useful, please consider supporting my work. Your donation helps cover server costs and future improvements.</p>
+    <div class="flex justify-center items-center gap-8 md:gap-12 mt-6">
+        <!-- UPI QR Code -->
+        <div class="text-center">
+            <img src="upi.png" alt="UPI QR Code" class="w-36 h-36 rounded-lg shadow-md mx-auto">
+            <p class="mt-3 font-medium text-gray-700">Scan for UPI</p>
+        </div>
+        <!-- BTC QR Code -->
+        <div class="text-center">
+            <img src="btc.png" alt="Bitcoin QR Code" class="w-36 h-36 rounded-lg shadow-md mx-auto">
+            <p class="mt-3 font-medium text-gray-700">Scan for BTC</p>
+        </div>
+    </div>
+    <p class="mt-12 text-gray-500">&copy; 2025 SortLab. All Rights Reserved.</p>
+</footer>
+</html>

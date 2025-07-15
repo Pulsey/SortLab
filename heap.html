@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Heap Sort Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .fira-code {
+            font-family: 'Fira Code', monospace;
+        }
+        .bar-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 0.25rem; /* 4px */
+            height: 120px;
+            position: relative;
+        }
+        .bar {
+            transition: all 0.4s ease;
+            width: 2.5rem; /* 40px */
+            border-radius: 0.375rem 0.375rem 0 0; /* rounded-t-md */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.875rem; /* text-sm */
+            padding-top: 0.5rem;
+            color: white;
+        }
+        /* FIX: New styles for the heap box and CSS Grid layout */
+        .heap-box {
+            position: relative;
+            width: 100%;
+            max-width: 480px;
+            margin: 1rem auto 0 auto;
+            border: 2px dashed #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+        .heap-grid-container {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(3, 60px);
+            align-items: center;
+            justify-items: center;
+            position: relative;
+            z-index: 10;
+        }
+        .heap-node {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            transition: all 0.4s ease;
+            border: 2px solid transparent;
+        }
+        .heap-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+        }
+        .swapping {
+            transform: scale(1.15);
+            background-color: #EF4444 !important;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.7);
+        }
+        .code-line {
+            transition: background-color 0.3s ease;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.25rem;
+            white-space: pre-wrap;
+        }
+        .highlight-line {
+            background-color: rgba(250, 204, 21, 0.4);
+        }
+        input:disabled, button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">Heap Sort Visualizer</h1>
+            <p class="mt-2 text-lg text-gray-600">A comparison-based sorting algorithm that uses a Binary Heap data structure.</p>
+        </div>
+        
+        <!-- Theory Section -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-8 prose max-w-none">
+            <h2 class="text-xl font-semibold">Heap Sort Theory</h2>
+            <p>Heap Sort is a clever algorithm that takes advantage of a data structure called a <strong>Heap</strong>. For sorting, we typically use a <strong>Max-Heap</strong>, which is a special binary tree where the value of each parent node is greater than or equal to the values of its children. The largest element is always at the root.</p>
+            <p>The algorithm works in two main phases:</p>
+            <ol>
+                <li><strong>Build Max-Heap:</strong> The first step is to convert the input array into a Max-Heap. This is done by starting from the last non-leaf node and repeatedly applying a process called "heapify" to ensure the heap property is maintained.</li>
+                <li><strong>Sort the Array:</strong> Once we have a Max-Heap, the largest element is at the root (index 0). We swap this element with the last element in the heap, effectively moving the largest value to its final sorted position at the end of the array. We then reduce the size of the heap by one and run "heapify" on the root again to find the next largest element. This process is repeated until the entire array is sorted.</li>
+            </ol>
+        </div>
+
+        <!-- Controls -->
+        <div id="controls" class="bg-white p-4 rounded-lg shadow-md mb-8">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-center">
+                <div class="lg:col-span-2">
+                    <label for="array-input" class="block text-sm font-medium text-gray-700">Custom Array (comma-separated)</label>
+                    <input type="text" id="array-input" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" placeholder="e.g., 4, 10, 3, 5, 1">
+                </div>
+                <div class="flex space-x-2 pt-5">
+                     <button id="randomize-btn" class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">Randomize</button>
+                    <button id="sort-btn" class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">Sort</button>
+                </div>
+                 <div class="flex space-x-2 pt-5">
+                     <button id="pause-resume-btn" class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-amber-500 hover:bg-amber-600">Pause</button>
+                    <button id="stop-btn" class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700">Stop</button>
+                </div>
+                <div>
+                    <label for="speed-slider" class="block text-sm font-medium text-gray-700">Animation Speed</label>
+                    <input type="range" id="speed-slider" min="50" max="1000" value="500" class="mt-1 block w-full">
+                </div>
+                 <div id="explanation-box" class="sm:col-span-full lg:col-span-5 bg-gray-100 p-3 rounded-md text-center h-full flex items-center justify-center mt-4">
+                    <p id="explanation-text" class="text-sm text-gray-700">Ready to sort!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content: Visualization and Code -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Visualization Area -->
+            <div id="visual-container" class="bg-white p-6 rounded-lg shadow-md min-h-[450px] flex flex-col">
+                <h2 class="text-xl font-semibold mb-2 text-center">Array and Heap Tree</h2>
+                <div id="main-array-container" class="bar-container mb-4"></div>
+                <div id="heap-box" class="heap-box">
+                    <svg id="heap-svg" class="heap-svg"></svg>
+                    <div id="heap-grid-container" class="heap-grid-container"></div>
+                </div>
+            </div>
+
+            <!-- Code Area -->
+            <div class="bg-gray-800 text-white p-6 rounded-lg shadow-md fira-code">
+                 <h2 class="text-xl font-semibold mb-4 text-center text-gray-300 font-sans">Algorithm Code</h2>
+                 <div id="code-container">
+                    <p class="code-line" data-line="1">function heapSort(arr) {</p>
+                    <p class="code-line pl-4" data-line="2">  let n = arr.length;</p>
+                    <p class="code-line pl-4" data-line="3">  // Build max heap</p>
+                    <p class="code-line pl-4" data-line="4">  for (let i = Math.floor(n / 2) - 1; i >= 0; i--)</p>
+                    <p class="code-line pl-8" data-line="5">    heapify(arr, n, i);</p>
+                    <p class="code-line pl-4" data-line="6">  // Extract elements from heap</p>
+                    <p class="code-line pl-4" data-line="7">  for (let i = n - 1; i > 0; i--) {</p>
+                    <p class="code-line pl-8" data-line="8">    [arr[0], arr[i]] = [arr[i], arr[0]];</p>
+                    <p class="code-line pl-8" data-line="9">    heapify(arr, i, 0);</p>
+                    <p class="code-line pl-4" data-line="10">  }</p>
+                    <p class="code-line" data-line="11">}</p>
+                    <br>
+                    <p class="code-line" data-line="12">function heapify(arr, n, i) {</p>
+                    <p class="code-line pl-4" data-line="13">  let largest = i;</p>
+                    <p class="code-line pl-4" data-line="14">  let l = 2 * i + 1;</p>
+                    <p class="code-line pl-4" data-line="15">  let r = 2 * i + 2;</p>
+                    <p class="code-line pl-4" data-line="16">  if (l < n && arr[l] > arr[largest]) largest = l;</p>
+                    <p class="code-line pl-4" data-line="17">  if (r < n && arr[r] > arr[largest]) largest = r;</p>
+                    <p class="code-line pl-4" data-line="18">  if (largest != i) {</p>
+                    <p class="code-line pl-8" data-line="19">    [arr[i], arr[largest]] = [arr[largest], arr[i]];</p>
+                    <p class="code-line pl-8" data-line="20">    heapify(arr, n, largest);</p>
+                    <p class="code-line pl-4" data-line="21">  }</p>
+                    <p class="code-line" data-line="22">}</p>
+                 </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const mainArrayContainer = document.getElementById('main-array-container');
+        const heapGridContainer = document.getElementById('heap-grid-container');
+        const heapSvg = document.getElementById('heap-svg');
+        const randomizeBtn = document.getElementById('randomize-btn');
+        const sortBtn = document.getElementById('sort-btn');
+        const pauseResumeBtn = document.getElementById('pause-resume-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const speedSlider = document.getElementById('speed-slider');
+        const arrayInput = document.getElementById('array-input');
+        const explanationText = document.getElementById('explanation-text');
+
+        // State
+        let array = [];
+        let originalArray = [];
+        let animationSpeed = 500;
+        let isSorting = false;
+        let isPaused = false;
+        let forceStop = false;
+
+        // --- Helper Functions ---
+        async function sleep(ms) {
+            while (isPaused && !forceStop) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            if (forceStop) return;
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function generateRandomArray() {
+            const size = 7; // Fixed size for a complete binary tree look
+            const newArray = [];
+            while (newArray.length < size) {
+                const randomNum = Math.floor(Math.random() * 91) + 10;
+                if (!newArray.includes(randomNum)) {
+                    newArray.push(randomNum);
+                }
+            }
+            array = newArray;
+            originalArray = [...array];
+            arrayInput.value = array.join(', ');
+            renderAll();
+        }
+        
+        function renderAll(highlights = {}) {
+            renderMainArray(highlights);
+            renderHeapTree(highlights);
+        }
+
+        function renderMainArray(highlights = {}) {
+            mainArrayContainer.innerHTML = '';
+            const maxValue = Math.max(...originalArray, 1);
+            
+            array.forEach((value, index) => {
+                const bar = document.createElement('div');
+                bar.classList.add('bar');
+                const heightPercentage = (value / maxValue) * 100;
+                bar.style.height = `${heightPercentage}%`;
+                bar.textContent = value;
+                
+                if (highlights.sorted && index >= highlights.sorted) {
+                     bar.style.backgroundColor = '#10B981'; // Green
+                } else if (highlights.swapping && highlights.swapping.includes(index)) {
+                     bar.classList.add('swapping');
+                } else if (highlights.heapifying === index) {
+                     bar.style.backgroundColor = '#F59E0B'; // Amber
+                } else {
+                    bar.style.backgroundColor = '#6366F1'; // Indigo
+                }
+                mainArrayContainer.appendChild(bar);
+            });
+        }
+        
+        // FIX: New stable grid layout positions
+        const GRID_POSITIONS = [
+            { row: 1, col: '4 / span 2' }, // 0
+            { row: 2, col: '2 / span 2' }, { row: 2, col: '6 / span 2' }, // 1, 2
+            { row: 3, col: '1 / span 2' }, { row: 3, col: '3 / span 2' }, { row: 3, col: '5 / span 2' }, { row: 3, col: '7 / span 2' }, // 3, 4, 5, 6
+        ];
+
+        function renderHeapTree(highlights = {}) {
+            heapGridContainer.innerHTML = '';
+            heapSvg.innerHTML = '';
+            const n = array.length;
+            if (n === 0) return;
+            
+            const heapSize = highlights.sorted !== undefined ? highlights.sorted : n;
+            const nodeElements = [];
+
+            // 1. Render nodes into the CSS Grid
+            for (let i = 0; i < n; i++) {
+                if (i >= GRID_POSITIONS.length) break;
+                
+                const pos = GRID_POSITIONS[i];
+                const node = document.createElement('div');
+                node.classList.add('heap-node');
+                node.style.gridRow = pos.row;
+                node.style.gridColumn = pos.col;
+                node.textContent = array[i];
+                node.dataset.index = i;
+
+                if (i >= heapSize) {
+                    node.style.backgroundColor = '#10B981';
+                    node.style.borderColor = '#059669';
+                } else if (highlights.swapping && highlights.swapping.includes(i)) {
+                    node.classList.add('swapping');
+                } else if (highlights.heapifying === i) {
+                    node.style.backgroundColor = '#F59E0B';
+                    node.style.borderColor = '#D97706';
+                } else {
+                    node.style.backgroundColor = '#6366F1';
+                }
+                heapGridContainer.appendChild(node);
+                nodeElements.push(node);
+            }
+
+            // 2. Use a short timeout to ensure nodes are in the DOM, then draw SVG lines
+            setTimeout(() => {
+                for (let i = 0; i < n; i++) {
+                    const parentNode = nodeElements[i];
+                    if (!parentNode) continue;
+                    
+                    const leftChildIndex = 2 * i + 1;
+                    const rightChildIndex = 2 * i + 2;
+
+                    if (leftChildIndex < n && nodeElements[leftChildIndex]) {
+                        drawLine(parentNode, nodeElements[leftChildIndex]);
+                    }
+                    if (rightChildIndex < n && nodeElements[rightChildIndex]) {
+                        drawLine(parentNode, nodeElements[rightChildIndex]);
+                    }
+                }
+            }, 0);
+        }
+        
+        function drawLine(node1, node2) {
+            const containerRect = heapGridContainer.getBoundingClientRect();
+            const rect1 = node1.getBoundingClientRect();
+            const rect2 = node2.getBoundingClientRect();
+
+            const x1 = rect1.left + rect1.width / 2 - containerRect.left;
+            const y1 = rect1.top + rect1.height / 2 - containerRect.top;
+            const x2 = rect2.left + rect2.width / 2 - containerRect.left;
+            const y2 = rect2.top + rect2.height / 2 - containerRect.top;
+
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', x1);
+            line.setAttribute('y1', y1);
+            line.setAttribute('x2', x2);
+            line.setAttribute('y2', y2);
+            line.setAttribute('stroke', '#d1d5db');
+            line.setAttribute('stroke-width', '2');
+            heapSvg.appendChild(line);
+        }
+
+        function highlightLine(lineNumber) {
+            document.querySelectorAll('.code-line').forEach(line => line.classList.remove('highlight-line'));
+            if (lineNumber) {
+                const lineToHighlight = document.querySelector(`[data-line="${lineNumber}"]`);
+                if (lineToHighlight) lineToHighlight.classList.add('highlight-line');
+            }
+        }
+        
+        function updateExplanation(text) {
+            explanationText.textContent = text;
+        }
+
+        function manageControls(sorting) {
+            isSorting = sorting;
+            arrayInput.disabled = sorting;
+            randomizeBtn.disabled = sorting;
+            sortBtn.disabled = sorting;
+            pauseResumeBtn.disabled = !sorting;
+            stopBtn.disabled = !sorting;
+        }
+
+        // --- Heap Sort Algorithm and Visualization ---
+        async function heapify(n, i) {
+            if (forceStop) return;
+            highlightLine(12); await sleep(animationSpeed);
+            
+            let largest = i;
+            let l = 2 * i + 1;
+            let r = 2 * i + 2;
+            
+            highlightLine(13); await sleep(animationSpeed/2);
+            highlightLine(14); await sleep(animationSpeed/2);
+            highlightLine(15); await sleep(animationSpeed/2);
+            
+            updateExplanation(`Heapifying subtree at index ${i}.`);
+            renderAll({ heapifying: i, sorted: n });
+            await sleep(animationSpeed);
+
+            highlightLine(16);
+            if (l < n && array[l] > array[largest]) {
+                largest = l;
+            }
+            await sleep(animationSpeed);
+            
+            highlightLine(17);
+            if (r < n && array[r] > array[largest]) {
+                largest = r;
+            }
+            await sleep(animationSpeed);
+
+            highlightLine(18);
+            if (largest != i) {
+                updateExplanation(`Node ${i} violates heap property. Swapping with larger child at ${largest}.`);
+                highlightLine(19);
+                renderAll({ swapping: [i, largest], sorted: n });
+                await sleep(animationSpeed);
+                
+                [array[i], array[largest]] = [array[largest], array[i]];
+                renderAll({ heapifying: largest, sorted: n });
+                await sleep(animationSpeed);
+
+                highlightLine(20);
+                await heapify(n, largest);
+            } else {
+                updateExplanation(`Node ${i} satisfies heap property.`);
+                renderAll({ sorted: n });
+                await sleep(animationSpeed);
+            }
+            highlightLine(21); await sleep(animationSpeed/2);
+        }
+
+        async function heapSort() {
+            manageControls(true);
+            forceStop = false;
+            isPaused = false;
+            pauseResumeBtn.textContent = 'Pause';
+            
+            let n = array.length;
+            highlightLine(1); await sleep(animationSpeed);
+            highlightLine(2); await sleep(animationSpeed);
+            
+            highlightLine(3); 
+            updateExplanation("Building Max-Heap from the array.");
+            await sleep(animationSpeed);
+
+            highlightLine(4);
+            for (let i = Math.floor(n / 2) - 1; i >= 0; i--) {
+                if(forceStop) return handleStop();
+                highlightLine(5);
+                await heapify(n, i);
+            }
+
+            updateExplanation("Max-Heap built. Now extracting elements.");
+            highlightLine(6); await sleep(animationSpeed);
+
+            highlightLine(7);
+            for (let i = n - 1; i > 0; i--) {
+                if(forceStop) return handleStop();
+                updateExplanation(`Swapping root (max element) ${array[0]} with last element ${array[i]}.`);
+                highlightLine(8);
+                renderAll({ swapping: [0, i], sorted: i + 1 });
+                await sleep(animationSpeed * 1.5);
+                
+                [array[0], array[i]] = [array[i], array[0]];
+                
+                updateExplanation(`${array[i]} is now in its final sorted position.`);
+                renderAll({ sorted: i });
+                await sleep(animationSpeed);
+
+                highlightLine(9);
+                await heapify(i, 0);
+            }
+            
+            highlightLine(11);
+            updateExplanation("Array is sorted!");
+            renderAll({ sorted: 0 });
+            highlightLine(null);
+            manageControls(false);
+        }
+
+        function handleStop() {
+            array = [...originalArray];
+            renderAll();
+            updateExplanation("Sort stopped by user. Array has been reset.");
+            highlightLine(null);
+            manageControls(false);
+        }
+
+        // --- Event Listeners ---
+        randomizeBtn.addEventListener('click', generateRandomArray);
+
+        sortBtn.addEventListener('click', async () => {
+            const inputVal = arrayInput.value.trim();
+            if (inputVal === '') {
+                updateExplanation("Please enter an array or randomize one.");
+                return;
+            }
+            const parsedArray = inputVal.split(',').map(item => parseInt(item.trim())).filter(item => !isNaN(item));
+            if (parsedArray.length < 2) {
+                updateExplanation("Please enter at least two numbers.");
+                return;
+            }
+            array = parsedArray;
+            originalArray = [...array];
+            renderAll();
+            heapSort();
+        });
+
+        pauseResumeBtn.addEventListener('click', () => {
+            if (!isSorting) return;
+            isPaused = !isPaused;
+            pauseResumeBtn.textContent = isPaused ? 'Resume' : 'Pause';
+            updateExplanation(isPaused ? 'Sorting paused.' : 'Resuming sort...');
+        });
+
+        stopBtn.addEventListener('click', () => {
+            if (!isSorting) return;
+            forceStop = true;
+            isPaused = false;
+        });
+        
+        speedSlider.addEventListener('input', (e) => {
+            animationSpeed = 1050 - e.target.value;
+        });
+
+        // --- Initial Load ---
+        window.onload = () => {
+            generateRandomArray();
+            manageControls(false);
+            updateExplanation("Ready to sort! Press the Sort button to begin.");
+            window.addEventListener('resize', () => {
+                if (!isSorting) {
+                    renderAll();
+                }
+            });
+        };
+    </script>
+</body>
+</html>

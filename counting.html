@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Counting Sort Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .fira-code {
+            font-family: 'Fira Code', monospace;
+        }
+        .array-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem; /* 8px */
+            min-height: 60px;
+        }
+        .cell {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            border-radius: 0.375rem;
+            transition: all 0.4s ease;
+            position: relative;
+        }
+        .cell-value {
+            font-size: 1.125rem; /* text-lg */
+        }
+        .cell-index {
+            position: absolute;
+            bottom: -1.5rem;
+            font-size: 0.75rem;
+            color: #6b7280; /* gray-500 */
+        }
+        .highlight-read {
+            transform: scale(1.15);
+            background-color: #3B82F6 !important; /* blue-500 */
+            color: white;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.7);
+        }
+        .highlight-write {
+            transform: scale(1.15);
+            background-color: #F59E0B !important; /* amber-500 */
+            color: white;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.7);
+        }
+         .highlight-output {
+            transform: scale(1.15);
+            background-color: #10B981 !important; /* green-500 */
+            color: white;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.7);
+        }
+        .code-line {
+            transition: background-color 0.3s ease;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.25rem;
+            white-space: pre-wrap;
+        }
+        .highlight-line {
+            background-color: rgba(250, 204, 21, 0.4);
+        }
+        input:disabled, button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+        <!-- Header -->
+        <div class="text-center mb-8 relative">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">Counting Sort Visualizer</h1>
+            <p class="mt-2 text-lg text-gray-600">An integer sorting algorithm that operates by counting the number of objects that have each distinct key value.</p>
+            <a href="index.html" class="absolute top-0 right-0 bg-indigo-100 text-indigo-700 font-semibold py-2 px-4 rounded-md hover:bg-indigo-200 transition-colors">
+                &larr; Back to SortLab
+            </a>
+        </div>
+        
+        <!-- Theory Section -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-8 prose max-w-none">
+            <h2 class="text-xl font-semibold">Counting Sort Theory</h2>
+            <p>Counting Sort is a non-comparison-based sorting algorithm that is highly efficient for sorting arrays of integers within a small range. It works by counting the occurrences of each distinct element in the input array and using those counts to determine the positions of each element in the sorted output array.</p>
+            <p>The algorithm works in three main phases:</p>
+            <ol>
+                <li><strong>Create Count Array:</strong> First, find the maximum value in the input array. Then, create a "count" array with a size of `max + 1` and initialize all its elements to zero.</li>
+                <li><strong>Store Frequencies:</strong> Iterate through the input array. For each element, use its value as an index into the count array and increment the count at that index. After this step, `count[i]` will store how many times the integer `i` appeared in the input.</li>
+                <li><strong>Build Output Array:</strong> Iterate through the count array. For each count at index `i`, place the integer `i` into the output array that many times. This naturally places the elements in sorted order. (A more stable version of the algorithm modifies the count array to store cumulative sums, but this version is simpler to visualize.)</li>
+            </ol>
+        </div>
+
+        <!-- Controls -->
+        <div id="controls" class="bg-white p-4 rounded-lg shadow-md mb-8">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-center">
+                <div class="lg:col-span-2">
+                    <label for="array-input" class="block text-sm font-medium text-gray-700">Custom Array (0-9)</label>
+                    <input type="text" id="array-input" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" placeholder="e.g., 4, 1, 3, 4, 3">
+                </div>
+                <div class="flex space-x-2 pt-5">
+                     <button id="randomize-btn" class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">Randomize</button>
+                    <button id="sort-btn" class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">Sort</button>
+                </div>
+                 <div class="flex space-x-2 pt-5">
+                     <button id="pause-resume-btn" class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-amber-500 hover:bg-amber-600">Pause</button>
+                    <button id="stop-btn" class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700">Stop</button>
+                </div>
+                <div>
+                    <label for="speed-slider" class="block text-sm font-medium text-gray-700">Animation Speed</label>
+                    <input type="range" id="speed-slider" min="50" max="1000" value="500" class="mt-1 block w-full">
+                </div>
+                 <div id="explanation-box" class="sm:col-span-full lg:col-span-5 bg-gray-100 p-3 rounded-md text-center h-full flex items-center justify-center mt-4">
+                    <p id="explanation-text" class="text-sm text-gray-700">Ready to sort!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content: Visualization and Code -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Visualization Area -->
+            <div id="visual-container" class="bg-white p-6 rounded-lg shadow-md min-h-[450px] flex flex-col justify-around">
+                <div>
+                    <h3 class="text-lg font-semibold mb-2 text-center text-gray-700">Input Array</h3>
+                    <div id="input-array-container" class="array-container"></div>
+                </div>
+                <div class="border-t-2 border-dashed my-4 pt-4">
+                    <h3 class="text-lg font-semibold mb-2 text-center text-gray-700">Count Array</h3>
+                    <div id="count-array-container" class="array-container"></div>
+                </div>
+                <div class="border-t-2 border-dashed my-4 pt-4">
+                    <h3 class="text-lg font-semibold mb-2 text-center text-gray-700">Output Array</h3>
+                    <div id="output-array-container" class="array-container"></div>
+                </div>
+            </div>
+
+            <!-- Code Area -->
+            <div class="bg-gray-800 text-white p-6 rounded-lg shadow-md fira-code">
+                 <h2 class="text-xl font-semibold mb-4 text-center text-gray-300 font-sans">Algorithm Code</h2>
+                 <div id="code-container">
+                    <p class="code-line" data-line="1">function countingSort(arr) {</p>
+                    <p class="code-line pl-4" data-line="2">  let max = Math.max(...arr);</p>
+                    <p class="code-line pl-4" data-line="3">  let count = new Array(max + 1).fill(0);</p>
+                    <p class="code-line pl-4" data-line="4">  let output = new Array(arr.length);</p>
+                    <p class="code-line pl-4" data-line="5">  // Store count of each character</p>
+                    <p class="code-line pl-4" data-line="6">  for (let i = 0; i < arr.length; i++) {</p>
+                    <p class="code-line pl-8" data-line="7">    count[arr[i]]++;</p>
+                    <p class="code-line pl-4" data-line="8">  }</p>
+                    <p class="code-line pl-4" data-line="9">  // Build the output character array</p>
+                    <p class="code-line pl-4" data-line="10">  let outputIndex = 0;</p>
+                    <p class="code-line pl-4" data-line="11">  for (let i = 0; i <= max; i++) {</p>
+                    <p class="code-line pl-8" data-line="12">    while (count[i] > 0) {</p>
+                    <p class="code-line pl-12" data-line="13">      output[outputIndex] = i;</p>
+                    <p class="code-line pl-12" data-line="14">      outputIndex++;</p>
+                    <p class="code-line pl-12" data-line="15">      count[i]--;</p>
+                    <p class="code-line pl-8" data-line="16">    }</p>
+                    <p class="code-line pl-4" data-line="17">  }</p>
+                    <p class="code-line pl-4" data-line="18">  return output;</p>
+                    <p class="code-line" data-line="19">}</p>
+                 </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const inputArrayContainer = document.getElementById('input-array-container');
+        const countArrayContainer = document.getElementById('count-array-container');
+        const outputArrayContainer = document.getElementById('output-array-container');
+        const randomizeBtn = document.getElementById('randomize-btn');
+        const sortBtn = document.getElementById('sort-btn');
+        const pauseResumeBtn = document.getElementById('pause-resume-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const speedSlider = document.getElementById('speed-slider');
+        const arrayInput = document.getElementById('array-input');
+        const explanationText = document.getElementById('explanation-text');
+
+        // State
+        let array = [];
+        let originalArray = [];
+        let animationSpeed = 500;
+        let isSorting = false;
+        let isPaused = false;
+        let forceStop = false;
+
+        // --- Helper Functions ---
+        async function sleep(ms) {
+            while (isPaused && !forceStop) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            if (forceStop) return;
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function generateRandomArray() {
+            const size = Math.floor(Math.random() * 6) + 5; // Size 5-10
+            const newArray = [];
+            for(let i=0; i<size; i++) {
+                newArray.push(Math.floor(Math.random() * 10)); // Numbers 0-9
+            }
+            array = newArray;
+            originalArray = [...array];
+            arrayInput.value = array.join(', ');
+            renderAll();
+        }
+        
+        function renderAll(data = {}) {
+            renderArray(inputArrayContainer, data.inputArray || array, data.inputHighlights);
+            renderArray(countArrayContainer, data.countArray || [], data.countHighlights);
+            renderArray(outputArrayContainer, data.outputArray || [], data.outputHighlights);
+        }
+
+        function renderArray(container, arr, highlights = {}) {
+            container.innerHTML = '';
+            arr.forEach((value, index) => {
+                const cell = document.createElement('div');
+                cell.classList.add('cell', 'bg-gray-200');
+                
+                const valueEl = document.createElement('span');
+                valueEl.classList.add('cell-value');
+                valueEl.textContent = value;
+                
+                const indexEl = document.createElement('span');
+                indexEl.classList.add('cell-index');
+                indexEl.textContent = index;
+
+                cell.appendChild(valueEl);
+                cell.appendChild(indexEl);
+
+                if (highlights.read === index) cell.classList.add('highlight-read');
+                if (highlights.write === index) cell.classList.add('highlight-write');
+                if (highlights.output === index) cell.classList.add('highlight-output');
+                
+                container.appendChild(cell);
+            });
+        }
+
+        function highlightLine(lineNumber) {
+            document.querySelectorAll('.code-line').forEach(line => line.classList.remove('highlight-line'));
+            if (lineNumber) {
+                const lineToHighlight = document.querySelector(`[data-line="${lineNumber}"]`);
+                if (lineToHighlight) lineToHighlight.classList.add('highlight-line');
+            }
+        }
+        
+        function updateExplanation(text) {
+            explanationText.textContent = text;
+        }
+
+        function manageControls(sorting) {
+            isSorting = sorting;
+            arrayInput.disabled = sorting;
+            randomizeBtn.disabled = sorting;
+            sortBtn.disabled = sorting;
+            pauseResumeBtn.disabled = !sorting;
+            stopBtn.disabled = !sorting;
+        }
+
+        // --- Counting Sort Algorithm and Visualization ---
+        async function countingSort() {
+            manageControls(true);
+            forceStop = false;
+            isPaused = false;
+            pauseResumeBtn.textContent = 'Pause';
+            
+            highlightLine(1); await sleep(animationSpeed); if (forceStop) return handleStop();
+            
+            let max = -1;
+            for(const num of array) {
+                if (num > max) max = num;
+            }
+            highlightLine(2);
+            updateExplanation(`Finding the maximum value in the input array. Max = ${max}.`);
+            await sleep(animationSpeed * 1.5); if (forceStop) return handleStop();
+
+            let count = new Array(max + 1).fill(0);
+            let output = new Array(array.length);
+            highlightLine(3);
+            updateExplanation(`Creating a 'count' array of size ${max + 1}, initialized to zeros.`);
+            renderAll({ countArray: count });
+            await sleep(animationSpeed * 1.5); if (forceStop) return handleStop();
+            
+            highlightLine(4); await sleep(animationSpeed); if (forceStop) return handleStop();
+            highlightLine(5); await sleep(animationSpeed); if (forceStop) return handleStop();
+
+            highlightLine(6);
+            for (let i = 0; i < array.length; i++) {
+                if (forceStop) return handleStop();
+                let value = array[i];
+                highlightLine(6);
+                updateExplanation(`Reading value ${value} from input array at index ${i}.`);
+                renderAll({ countArray: count, inputHighlights: { read: i }});
+                await sleep(animationSpeed);
+                
+                highlightLine(7);
+                updateExplanation(`Incrementing count for value ${value} at index ${value} in the count array.`);
+                count[value]++;
+                renderAll({ countArray: count, inputHighlights: { read: i }, countHighlights: { write: value }});
+                await sleep(animationSpeed);
+            }
+            highlightLine(8); await sleep(animationSpeed);
+
+            updateExplanation(`Finished counting. Now building the sorted output array.`);
+            renderAll({ countArray: count });
+            await sleep(animationSpeed);
+            
+            highlightLine(9); await sleep(animationSpeed); if (forceStop) return handleStop();
+            highlightLine(10); await sleep(animationSpeed); if (forceStop) return handleStop();
+            
+            let outputIndex = 0;
+            highlightLine(11);
+            for (let i = 0; i <= max; i++) {
+                if (forceStop) return handleStop();
+                highlightLine(11);
+                updateExplanation(`Checking count for value ${i}.`);
+                renderAll({ countArray: count, outputArray: output, countHighlights: { read: i }});
+                await sleep(animationSpeed);
+
+                highlightLine(12);
+                while (count[i] > 0) {
+                    if (forceStop) return handleStop();
+                    highlightLine(12);
+                    updateExplanation(`Count for ${i} is ${count[i]}. Placing ${i} into the output array.`);
+                    await sleep(animationSpeed);
+
+                    highlightLine(13);
+                    output[outputIndex] = i;
+                    renderAll({ countArray: count, outputArray: output, countHighlights: { read: i }, outputHighlights: { output: outputIndex }});
+                    await sleep(animationSpeed);
+                    
+                    highlightLine(14);
+                    outputIndex++;
+                    await sleep(animationSpeed/2);
+                    
+                    highlightLine(15);
+                    count[i]--;
+                    renderAll({ countArray: count, outputArray: output, countHighlights: { write: i }});
+                    await sleep(animationSpeed);
+                }
+                highlightLine(16); await sleep(animationSpeed/2);
+            }
+            
+            highlightLine(18);
+            updateExplanation("Array is sorted!");
+            array = [...output];
+            renderAll({countArray: count, outputArray: output });
+            highlightLine(null);
+            manageControls(false);
+        }
+
+        function handleStop() {
+            array = [...originalArray];
+            renderAll();
+            updateExplanation("Sort stopped by user. Array has been reset.");
+            highlightLine(null);
+            manageControls(false);
+        }
+
+        // --- Event Listeners ---
+        randomizeBtn.addEventListener('click', generateRandomArray);
+
+        sortBtn.addEventListener('click', async () => {
+            const inputVal = arrayInput.value.trim();
+            if (inputVal === '') {
+                updateExplanation("Please enter an array or randomize one.");
+                return;
+            }
+            const parsedArray = inputVal.split(',').map(item => parseInt(item.trim())).filter(item => !isNaN(item) && item >= 0 && item <= 9);
+            
+            if (parsedArray.length !== inputVal.split(',').length || parsedArray.length < 2) {
+                updateExplanation("Please enter at least two numbers between 0 and 9.");
+                return;
+            }
+            array = parsedArray;
+            originalArray = [...array];
+            renderAll();
+            countingSort();
+        });
+
+        pauseResumeBtn.addEventListener('click', () => {
+            if (!isSorting) return;
+            isPaused = !isPaused;
+            pauseResumeBtn.textContent = isPaused ? 'Resume' : 'Pause';
+            updateExplanation(isPaused ? 'Sorting paused.' : 'Resuming sort...');
+        });
+
+        stopBtn.addEventListener('click', () => {
+            if (!isSorting) return;
+            forceStop = true;
+            isPaused = false;
+        });
+        
+        speedSlider.addEventListener('input', (e) => {
+            animationSpeed = 1050 - e.target.value;
+        });
+
+        // --- Initial Load ---
+        window.onload = () => {
+            generateRandomArray();
+            manageControls(false);
+            updateExplanation("Ready to sort! Press the Sort button to begin.");
+        };
+    </script>
+</body>
+<footer class="text-center mt-16 pt-8 border-t border-gray-200">
+    <h3 class="text-xl font-semibold text-gray-800">This project is built with ❤️ by a solo developer.</h3>
+    <p class="text-gray-600 mt-2">If you find it useful, please consider supporting my work. Your donation helps cover server costs and future improvements.</p>
+    <div class="flex justify-center items-center gap-8 md:gap-12 mt-6">
+        <!-- UPI QR Code -->
+        <div class="text-center">
+            <img src="upi.png" alt="UPI QR Code" class="w-36 h-36 rounded-lg shadow-md mx-auto">
+            <p class="mt-3 font-medium text-gray-700">Scan for UPI</p>
+        </div>
+        <!-- BTC QR Code -->
+        <div class="text-center">
+            <img src="btc.png" alt="Bitcoin QR Code" class="w-36 h-36 rounded-lg shadow-md mx-auto">
+            <p class="mt-3 font-medium text-gray-700">Scan for BTC</p>
+        </div>
+    </div>
+    <p class="mt-12 text-gray-500">&copy; 2025 SortLab. All Rights Reserved.</p>
+</footer>
+</html>
